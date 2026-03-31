@@ -9,6 +9,8 @@
 
 ## Libraries / SDKs
 - **GStreamer:** 1.28.1
+- **TensorRT:** 10.15.1.29
 
-cmake .. -G "Visual Studio 17 2022"  
-cmake --build . --config Release
+## To build the project
+>> cmake .. -G "Visual Studio 17 2022"  
+>> cmake --build . --config Release
