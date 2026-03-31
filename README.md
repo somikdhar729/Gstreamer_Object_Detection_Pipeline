@@ -9,3 +9,6 @@
 
 ## Libraries / SDKs
 - **GStreamer:** 1.28.1
+
+cmake .. -G "Visual Studio 17 2022"  
+cmake --build . --config Release
