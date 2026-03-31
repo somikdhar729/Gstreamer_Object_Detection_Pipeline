@@ -4,6 +4,8 @@ project(Gstreamer_Object_Detection_Pipeline)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+################################## Engine Conversion ##################################
 # Set TensorRT path
 set(TENSORRT_ROOT "C:/TensorRT-10.15.1.29")
 
@@ -18,12 +20,16 @@ link_directories(
     ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64
 )
 
-add_executable(trt_engine src/convert_to_engine.cpp)
-target_link_libraries(trt_engine
+add_executable(trt_cuda_graph src/trt_cuda_graph.cpp)
+target_link_libraries(trt_cuda_graph
     nvinfer_10
     nvonnxparser_10
     cuda
+    cudart
 )
+
+############################################################################
+
 
 # GStreamer
 # set(GSTREAMER_ROOT_DIR "C:/Program Files/gstreamer/1.0/msvc_x86_64")

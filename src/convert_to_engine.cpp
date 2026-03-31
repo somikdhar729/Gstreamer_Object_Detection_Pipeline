@@ -19,6 +19,12 @@ class Logger : public ILogger{
 void saveEngine(ICudaEngine* engine, const std::string& path){
     IHostMemory* serialized = engine->serialize();
     std::ofstream file(path, std::ios::binary);
+    if (!file) {
+        std::cerr << "Failed to open file: " << path << std::endl;
+        delete serialized;
+        return;
+    }
+    std::ofstream file(path, std::ios::binary);
     file.write(reinterpret_cast<const char*>(serialized->data()), serialized->size());
     delete serialized;
 }
