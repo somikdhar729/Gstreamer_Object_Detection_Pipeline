@@ -1,6 +1,8 @@
 # Build folders
 build/
 
+scripts/
+
 # models
 *.pt
 *.pth
