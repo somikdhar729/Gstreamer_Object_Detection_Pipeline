@@ -1,5 +1,26 @@
-# Gstreamer_Object_Detection_Pipeline
+# Gstreamer Object Detection Pipeline: 
+Offline video object detection pipeline for benchmarking different inference backends.
 
+Built using:
+* GStreamer (decode/ encode)
+* ONNX Runtime/ TensorRT (CPU & GPU inference)
+* YOLO26 model
+
+## Features
+* End-to-end pipeline
+```
+Decode → Preprocess → Inference → Postprocess → Encode
+```
+* GStreamer-based I/O
+* Modular backend(ONNX Runtime & TensorRT)
+* Performance Benchmarking
+
+## Current Status
+| Component | Status |
+| --------- | ------ |
+| Decode (CPU - avdec_h264) | ✅ |
+| Inference (ONNX Runtime CPU) | ✅ |
+| Encode (CPU - x264) | ✅ |
 ## Development Environment
 - **OS:** Windows 11
 - **Compiler:** MSVC
@@ -28,7 +49,7 @@
             python scripts/pt_to_onnx_export.py <pytorch model source path> <onnx model destination path>
             ```
 
-> ***In our case, I converted .pt model to .onnx model using the second method.***
+> ***In our case, I converted .pt model to .onnx model(simplified) using the second method.***
 
 ## To build the project
 ```
@@ -38,7 +59,11 @@ cd Release
 main.exe <input_video_path>  <model_path(.onnx/.engine)> <output_video_path>
 ```
 
-Note: For proper configuration, copy   ***onnxruntime.dll, onnxruntime_providers_shared.dll, onnxruntime_providers_cuda.dll*** to build/Release
+## Runtime Setup(for Windows)
+Copy the following into build/Release from the ONNX Runtime path:
+* onnxruntime.dll
+* onnxruntime_providers_shared.dll
+* onnxruntime_providers_cuda.dll
 
 ## Benchmarking
 * Video Info - Width: 1920, Height: 1080, FPS: 30
