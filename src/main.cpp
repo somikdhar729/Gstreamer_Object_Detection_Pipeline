@@ -103,19 +103,20 @@ int main(int argc, char** argv){
     int warmup = 10;
     int processed = 0;
 
-    total_timer.start();
-    while(reader.readFrame(frame, width, height)){
+    // total_timer.start();
+    // while(reader.readFrame(frame, width, height)){
+    while(true){
         // Decode frame
         if(processed >= warmup_frames){
             decode_timer.start();
         }
-        // bool success = reader.readFrame(frame, width, height);
-        
+        bool success = reader.readFrame(frame, width, height);
+
         if(processed >= warmup_frames){
             decode_timer.stop();
         }
 
-        // if(!success) break;
+        if (!success) break;
         // Start total timer after warmup
         if(processed == warmup_frames){
             total_timer.reset();

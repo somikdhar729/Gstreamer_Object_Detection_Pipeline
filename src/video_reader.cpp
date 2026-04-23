@@ -1,7 +1,7 @@
 #include "video_reader.hpp"
 
 VideoReader::VideoReader(const std::string &source) : pipeline(nullptr), appsink(nullptr), initialized(false){
-    gst_init(nullptr, nullptr);
+    gst_init(nullptr, nullptr); // Initialize GStreamer. This is necessary before using any GStreamer functions. It sets up the internal data structures and prepares the library for use.
     buildPipeline(source);
     if(initialized){
         gst_element_set_state(pipeline, GST_STATE_PLAYING);
@@ -31,15 +31,17 @@ void VideoReader::buildPipeline(const std::string &source){
                                 "video/x-raw,format=RGB ! "
                                 "appsink name=sink max-buffers=1 drop=false sync=false";
 
-    GError *error = nullptr;
-    pipeline = gst_parse_launch(pipeline_desc.c_str(), &error);
+    GError *error = nullptr; // GError structure to hold error information if pipeline creation fails
+    pipeline = gst_parse_launch(pipeline_desc.c_str(), &error); // Create the GStreamer pipeline from the description string. If there is an error during pipeline creation, the error variable will be set with details about the failure
+
     if(!pipeline){
         std::cerr << "Failed to create pipeline: " << error->message << std::endl;
         g_error_free(error);
         return;
     }
     
-    appsink = GST_APP_SINK(gst_bin_get_by_name(GST_BIN(pipeline), "sink"));
+    appsink = GST_APP_SINK(gst_bin_get_by_name(GST_BIN(pipeline), "sink")); // Get the appsink element from the pipeline by name. This allows us to access the decoded video frames in our application. If we fail to get the appsink, we need to clean up the pipeline and return
+
     if(!appsink){
         std::cerr << "Failed to get appsink from pipeline" << std::endl;
         gst_object_unref(pipeline);
@@ -53,12 +55,6 @@ bool VideoReader::getVideoInfo(){
     // Wait for the first frame to get video info
     GstSample *sample = gst_app_sink_try_pull_sample(GST_APP_SINK(appsink), 5 * GST_SECOND); // Wait up to 5 seconds
     if (!sample) {
-        // Check if pipeline reached EOS
-        if (gst_app_sink_is_eos(GST_APP_SINK(appsink))) {
-            std::cerr << "End of stream reached while trying to get video info\n";
-            return false;  // normal end of video
-        }
-
         std::cerr << "Failed to pull sample\n";
         return false;
     }
@@ -103,7 +99,9 @@ bool VideoReader::readFrame(uint8_t*& frame, int &width, int &height){
     
     // Allocate output frame buffer and copy data from mapped buffer
     frame_buffer.resize(map.size); // Resize the frame buffer to hold the frame data
+    
     memcpy(frame_buffer.data(), map.data, map.size); // Copy the frame data from the mapped buffer to the frame buffer. This is necessary because the mapped buffer data will be unmapped and freed after this function returns, so we need to copy it to our own buffer that will persist until the frame is processed
+
     frame = frame_buffer.data(); // Set the output frame pointer to the frame buffer data. No copy is needed since we will directly use the mapped buffer data
     
     gst_buffer_unmap(buffer, &map); // Unmap the buffer to free resources

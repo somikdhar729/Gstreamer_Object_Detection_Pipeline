@@ -21,13 +21,14 @@ struct Detection{
 
 class InferenceEngine {
     public:
-        InferenceEngine(const std::string& model_path);
-        ~InferenceEngine();
+        InferenceEngine(const std::string& model_path); // Constructor to initialize the inference engine with the given model path
+        ~InferenceEngine(); // Destructor to clean up resources
 
         // Detect objects in the input frame and return a list of detections
         std::vector<Detection> detect(uint8_t* frame, int width, int height);
 
     private:
+        // Backend type enumeration to differentiate between ONNX Runtime and TensorRT
         enum BackendType {
                 ONNX,
                 TENSORRT
@@ -35,9 +36,10 @@ class InferenceEngine {
         BackendType backend_;
 
         // ONNX 
-        Ort::Env ort_env_;
-        Ort::Session ort_session_;
-        Ort::SessionOptions session_options;
+        Ort::Env ort_env_; // ONNX Runtime environment
+        Ort::Session ort_session_; // ONNX Runtime session
+        Ort::SessionOptions session_options; // ONNX Runtime session options - can be configured for performance tuning
+        
         std::vector<float> input_buffer_;
         void initONNX(const std::string& model_path);
         
