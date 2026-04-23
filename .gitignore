@@ -1,6 +1,6 @@
 # Build folders
 build/
-scripts/
+# scripts/
 
 # models
 *.pt
@@ -9,4 +9,4 @@ scripts/
 *.engine
 
 *.dll
-*.mp4
+# *.mp4
