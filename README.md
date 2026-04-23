@@ -33,4 +33,4 @@ cd Release
 main.exe <input_video_path>  <model_path(.onnx/.engine)> <output_video_path>
 ```
 
-Note: For proper configuration, copy ** *onnxruntime.dll, onnxruntime_providers_shared.dll, onnxruntime_providers_cuda.dll* ** to build/Release
+Note: For proper configuration, copy   ***onnxruntime.dll, onnxruntime_providers_shared.dll, onnxruntime_providers_cuda.dll*** to build/Release
