@@ -24,7 +24,7 @@ void saveEngine(ICudaEngine* engine, const std::string& path){
         delete serialized;
         return;
     }
-    std::ofstream file(path, std::ios::binary);
+    // std::ofstream file(path, std::ios::binary);
     file.write(reinterpret_cast<const char*>(serialized->data()), serialized->size());
     delete serialized;
 }

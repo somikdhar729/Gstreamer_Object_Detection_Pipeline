@@ -1,11 +1,13 @@
 #include "video_reader.hpp"
-#include <iostream>
 
 VideoReader::VideoReader(const std::string &source) : pipeline(nullptr), appsink(nullptr), initialized(false){
     gst_init(nullptr, nullptr);
     buildPipeline(source);
     if(initialized){
         gst_element_set_state(pipeline, GST_STATE_PLAYING);
+        // WAIT until ready
+        gst_element_get_state(pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
+
         getVideoInfo();
     }
 }
@@ -15,16 +17,20 @@ VideoReader::~VideoReader(){
         gst_element_set_state(pipeline, GST_STATE_NULL);
         gst_object_unref(pipeline);
     }
+    if(appsink){
+        gst_object_unref(appsink);
+    }
 }
 
 void VideoReader::buildPipeline(const std::string &source){
-    std::string pipeline_desc = "filesrc location=" + source + " ! "
-                                "qtdemux ! " // Extracts video stream from MP4 container
-                                "h264parse ! " // Parses H.264 stream
-                                "nvv4l2decoder ! " // Hardware-accelerated decoding
-                                "nvvidconv ! " // Converts to RGBA format
-                                "video/x-raw, format=RGB ! " // Ensure output is RGB
-                                "appsink name=sink max-buffers=1 drop=true sync=false";
+    std::string pipeline_desc = "filesrc location=\"" + source + "\" ! "
+                                "qtdemux ! "
+                                "h264parse ! "
+                                "avdec_h264 ! "
+                                "videoconvert ! "
+                                "video/x-raw,format=RGB ! "
+                                "appsink name=sink max-buffers=1 drop=false sync=false";
+
     GError *error = nullptr;
     pipeline = gst_parse_launch(pipeline_desc.c_str(), &error);
     if(!pipeline){
@@ -32,6 +38,7 @@ void VideoReader::buildPipeline(const std::string &source){
         g_error_free(error);
         return;
     }
+    
     appsink = GST_APP_SINK(gst_bin_get_by_name(GST_BIN(pipeline), "sink"));
     if(!appsink){
         std::cerr << "Failed to get appsink from pipeline" << std::endl;
@@ -44,9 +51,15 @@ void VideoReader::buildPipeline(const std::string &source){
 
 bool VideoReader::getVideoInfo(){
     // Wait for the first frame to get video info
-    GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(appsink), 5 * GST_SECOND); // Wait up to 5 seconds
-    if(!sample){
-        std::cerr << "Failed to pull sample for video info" << std::endl;
+    GstSample *sample = gst_app_sink_try_pull_sample(GST_APP_SINK(appsink), 5 * GST_SECOND); // Wait up to 5 seconds
+    if (!sample) {
+        // Check if pipeline reached EOS
+        if (gst_app_sink_is_eos(GST_APP_SINK(appsink))) {
+            std::cerr << "End of stream reached while trying to get video info\n";
+            return false;  // normal end of video
+        }
+
+        std::cerr << "Failed to pull sample\n";
         return false;
     }
 
@@ -66,11 +79,15 @@ bool VideoReader::getVideoInfo(){
     return true;    
 }
 
-bool VideoReader::readFrame(uint8_t** frame, int &width, int &height){
+bool VideoReader::readFrame(uint8_t*& frame, int &width, int &height){
     if(!initialized) return false;
 
     GstSample *sample = gst_app_sink_try_pull_sample(GST_APP_SINK(appsink), GST_SECOND); // Wait up to 1 second for a frame
     if(!sample){
+        if (gst_app_sink_is_eos(appsink)) {
+            std::cout << "End of stream reached\n";
+            return false;  // real stop condition
+        }
         std::cerr << "Failed to pull sample" << std::endl;
         return false;
     }
@@ -83,10 +100,15 @@ bool VideoReader::readFrame(uint8_t** frame, int &width, int &height){
     }
     width = this->width; // Set the output width parameter to the video width
     height = this->height; // Set the output height parameter to the video height
-    frame.assign(map.data, map.data + map.size); // Set the output frame pointer to the mapped buffer data. We use assign to copy the data from the mapped buffer to the output frame pointer. This is necessary because the mapped buffer will be unmapped and unrefed after this function returns, so we need to copy the data to ensure it remains valid.
+    
+    // Allocate output frame buffer and copy data from mapped buffer
+    frame_buffer.resize(map.size); // Resize the frame buffer to hold the frame data
+    memcpy(frame_buffer.data(), map.data, map.size); // Copy the frame data from the mapped buffer to the frame buffer. This is necessary because the mapped buffer data will be unmapped and freed after this function returns, so we need to copy it to our own buffer that will persist until the frame is processed
+    frame = frame_buffer.data(); // Set the output frame pointer to the frame buffer data. No copy is needed since we will directly use the mapped buffer data
+    
     gst_buffer_unmap(buffer, &map); // Unmap the buffer to free resources
     gst_sample_unref(sample); // Unref the sample to free resources
 
     // We need to keep the sample alive until the frame is processed. 
-    return false;
+    return true;
 }
