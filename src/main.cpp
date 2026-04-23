@@ -104,7 +104,6 @@ int main(int argc, char** argv){
     int processed = 0;
 
     // total_timer.start();
-    // while(reader.readFrame(frame, width, height)){
     while(true){
         // Decode frame
         if(processed >= warmup_frames){
@@ -154,16 +153,14 @@ int main(int argc, char** argv){
         }
         processed++;}
     total_timer.stop();
-    double total_time = total_timer.getTotalTime();//.getTotalTime() + inference_timer.getTotalTime() + encode_timer.getTotalTime();
-    // std::cout << "Processed " << frame_count << " frames in " << total_time << " seconds." << std::endl;
-    // std::cout << "Average FPS: " << frame_count / total_time << std::endl;
+    double total_time = total_timer.getTotalTime();
 
     std::cout << "\n==== Performance Breakdown ====\n";
     std::cout << "Frames (measured): " << frame_count << "\n";
-    std::cout << "Decode:    " << decode_timer.getTotalTime() << " s\n";
-    std::cout << "Inference: " << inference_timer.getTotalTime() << " s\n";
-    std::cout << "Draw:      " << draw_timer.getTotalTime() << " s\n";
-    std::cout << "Encode:    " << encode_timer.getTotalTime() << " s\n";
+    std::cout << "Decode:    " << decode_timer.getTotalTime()    / frame_count<< " s\n";
+    std::cout << "Inference: " << inference_timer.getTotalTime() / frame_count<< " s\n";
+    std::cout << "Draw:      " << draw_timer.getTotalTime()      / frame_count<< " s\n";
+    std::cout << "Encode:    " << encode_timer.getTotalTime()    / frame_count<< " s\n";
     std::cout << "Total:     " << total_time << " s\n";
     std::cout << "FPS:       " << (frame_count / total_time) << "\n";
 

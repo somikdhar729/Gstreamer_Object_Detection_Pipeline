@@ -34,3 +34,13 @@ main.exe <input_video_path>  <model_path(.onnx/.engine)> <output_video_path>
 ```
 
 Note: For proper configuration, copy   ***onnxruntime.dll, onnxruntime_providers_shared.dll, onnxruntime_providers_cuda.dll*** to build/Release
+
+## Benchmarking
+* Video Info - Width: 1920, Height: 1080, FPS: 30
+
+| Run | Decode Backend | Inference Backend | Draw Backend | Encode Backend | Model Format | Precision | Resolution | Decode (ms) | Inference (ms) | Draw (ms) | Encode (ms) | Total Time (s) | Frames | FPS |
+|-----|----------------|-------------------|--------------|----------------|--------------|-----------|------------|-------------|----------------|-----------|-------------|----------------|--------|-----|
+| 1   | CPU (FFmpeg avdec_h264) | CPU (ONNXRuntime) | CPU | CPU(x264) | ONNX   | FP32 | 1920x1080  | 0.7 | 93 | 0.02 | 1.3 | 183 | 1909 | 10.5 |
+<!-- | 2   | GPU (NVDEC)    | GPU (TensorRT)    | CPU          | GPU (NVENC)    | TRT Engine   | FP16      | 1920x1080  |             |                |           |             |                |        |     |
+| 3   | CPU (FFmpeg)   | GPU (ONNXRuntime) | CPU          | CPU            | ONNX         | FP32      | 1280x720   |             |                |           |             |                |        |     |
+| 4   | GPU (NVDEC)    | CPU (ONNXRuntime) | CPU          | CPU            | ONNX         | FP32      | 640x480    |             |                |           |             |                |        |     | -->
