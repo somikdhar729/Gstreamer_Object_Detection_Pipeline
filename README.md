@@ -19,7 +19,7 @@
 * To install ultralytics: [Installation steps](https://docs.ultralytics.com/quickstart/#conda-docker-image)
 
 * Download yolo26n from the ultralytics website: [yolo26n](https://docs.ultralytics.com/models/yolo26/#supported-tasks-and-modes)
-* Convert the yolo pytorch model to onnx
+* Convert the yolo pytorch model to onnx format
     * Can be done using two ways:
         1. Using ultralytics onnx export: [yolo26 model onnx export](https://docs.ultralytics.com/integrations/onnx/#deploying-exported-yolo26-onnx-models)
         2. Run the following python code
@@ -27,6 +27,8 @@
             ```
             python scripts/pt_to_onnx_export.py <pytorch model source path> <onnx model destination path>
             ```
+
+> ***In our case, I converted .pt model to .onnx model using the second method.***
 
 ## To build the project
 ```
