@@ -25,7 +25,9 @@ class InferenceEngine {
         ~InferenceEngine(); // Destructor to clean up resources
 
         // Detect objects in the input frame and return a list of detections
-        std::vector<Detection> detect(uint8_t* frame, int width, int height);
+        void preprocess(uint8_t* frame, int width, int height, float* input);
+        std::vector<Detection> postprocess(float* output, int orig_w, int orig_h);
+        float* detect(const float* input, int width, int height);
 
     private:
         // Backend type enumeration to differentiate between ONNX Runtime and TensorRT
@@ -59,6 +61,6 @@ class InferenceEngine {
         size_t input_size_;
         size_t output_size_;
 
-        void preprocess(uint8_t* frame, int width, int height, float* input);
-        std::vector<Detection> postprocess(float* output, int orig_w, int orig_h);
+        // void preprocess(uint8_t* frame, int width, int height, float* input);
+        // std::vector<Detection> postprocess(float* output, int orig_w, int orig_h);
 };

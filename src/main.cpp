@@ -95,6 +95,8 @@ int main(int argc, char** argv){
     Timer decode_timer;
     Timer encode_timer;
     Timer draw_timer;
+    Timer postprocess_timer;
+    Timer preprocess_timer;
 
     int frame_count = 0;
     const int warmup_frames = 10; // Number of frames to skip for warmup
@@ -104,6 +106,8 @@ int main(int argc, char** argv){
     int processed = 0;
 
     // total_timer.start();
+    std::vector<float> input(3 * 640 * 640);
+    float* output = nullptr;
     while(true){
         // Decode frame
         if(processed >= warmup_frames){
@@ -121,15 +125,32 @@ int main(int argc, char** argv){
             total_timer.reset();
             total_timer.start();
         }
+
+        // Preprocess 
+        if(processed >= warmup_frames){
+            preprocess_timer.start();    
+        }
+        engine.preprocess(frame, width, height, input.data());
+        if(processed >= warmup_frames){
+            preprocess_timer.stop();
+        }
         // Inference
         if(processed >= warmup_frames){
             inference_timer.start();
         }
-        std::vector<Detection> detections = engine.detect(frame, width, height);
+        output = engine.detect(input.data(), width, height);
         if(processed >= warmup_frames){
             inference_timer.stop();
         }
 
+        // Postprocess
+        if(processed >= warmup_frames){
+            postprocess_timer.start();
+        }
+        std::vector<Detection> detections = engine.postprocess(output, width, height);
+        if(processed >= warmup_frames){
+            postprocess_timer.stop();
+        }
         // Draw bounding boxes
         if(processed >= warmup_frames){
             draw_timer.start();
@@ -158,7 +179,9 @@ int main(int argc, char** argv){
     std::cout << "\n==== Performance Breakdown ====\n";
     std::cout << "Frames (measured): " << frame_count << "\n";
     std::cout << "Decode:    " << decode_timer.getTotalTime()    / frame_count<< " s\n";
+    std::cout << "Preprocess:" << preprocess_timer.getTotalTime() / frame_count<< " s\n";
     std::cout << "Inference: " << inference_timer.getTotalTime() / frame_count<< " s\n";
+    std::cout << "Postprocess:" << postprocess_timer.getTotalTime() / frame_count<< " s\n";
     std::cout << "Draw:      " << draw_timer.getTotalTime()      / frame_count<< " s\n";
     std::cout << "Encode:    " << encode_timer.getTotalTime()    / frame_count<< " s\n";
     std::cout << "Total:     " << total_time << " s\n";

@@ -73,24 +73,28 @@ void InferenceEngine::initTensorRT(const std::string& path){
     // Load engine file
     std::ifstream file(path, std::ios::binary);
     if(!file){
-        throw std::runtime_error("Failed to open engine file: " + path);
+        throw std::runtime_error("Failed to open engine file: " + path); // Throw an exception if the file cannot be opened as it is critical for the application to function. This allows the caller to handle the error gracefully, such as by logging an error message or attempting to load a different model, rather than crashing the entire application.
     }
-    file.seekg(0, file.end);
-    size_t engine_size = file.tellg();
-    file.seekg(0, file.beg);
+    file.seekg(0, file.end); // Move to end to get size. Moves the pointer to the end of the file
+    auto engine_size = file.tellg(); // Get size(in bytes)
+    file.seekg(0, file.beg); // Move back to beginning for reading
 
     std::vector<char> engine_data(engine_size);
-    file.read(engine_data.data(), engine_size);
+    if(!file.read(engine_data.data(), engine_size)){
+        throw std::runtime_error("Failed to read engine file: " + path);
+    }
 
-    runtime_ = createInferRuntime(logger);
-    engine_ = runtime_->deserializeCudaEngine(engine_data.data(), engine_size);   
-    context_ = engine_->createExecutionContext();
+    runtime_ = createInferRuntime(logger); // Create TensorRT runtime
+    engine_ = runtime_->deserializeCudaEngine(engine_data.data(), engine_size); // Deserialize engine from memory 
+    context_ = engine_->createExecutionContext(); // Create execution context for inference
 
     input_size_ = 1 * 3 * 640 * 640 * sizeof(float); // Assuming input is (1,3,640,640)
     output_size_ = 1 * 300 * 6 * sizeof(float); // Assuming output is (1,300,6)
 
     cudaMalloc(&device_input_, input_size_);
     cudaMalloc(&device_output_, output_size_);
+    context_->setTensorAddress("images", device_input_);
+    context_->setTensorAddress("output", device_output_);
 
     host_output_ = new float[1 * 300 * 6]; // Adjust size based on actual output
 }
@@ -208,12 +212,12 @@ std::vector<Detection> InferenceEngine::postprocess(float* output, int orig_w, i
 }
 
 // ---------------- DETECT ----------------
-std::vector<Detection> InferenceEngine::detect(uint8_t* frame, int width, int height){
+float* InferenceEngine::detect(const float* input, int width, int height){
 
     if(backend_ == BackendType::ONNX){
 
         // 1. Preprocess
-        preprocess(const_cast<uint8_t*>(frame), width, height, input_buffer_.data());
+        // preprocess(const_cast<uint8_t*>(frame), width, height, input_buffer_.data());
 
         // 2. Create memory info
         static Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(
@@ -222,7 +226,9 @@ std::vector<Detection> InferenceEngine::detect(uint8_t* frame, int width, int he
         // 3. Create input tensor
         std::array<int64_t, 4> input_shape{1,3,640,640};
         Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-            memory_info, input_buffer_.data(), input_buffer_.size(), input_shape.data(), input_shape.size());
+            memory_info, const_cast<float*>(input),   // use actual input
+                    3 * 640 * 640,//input_buffer_.data(), input_buffer_.size(), 
+                    input_shape.data(), input_shape.size());
         
         // 4. Get input and output names
         auto input_names = ort_session_.GetInputNameAllocated(0, Ort::AllocatorWithDefaultOptions());
@@ -238,25 +244,26 @@ std::vector<Detection> InferenceEngine::detect(uint8_t* frame, int width, int he
             output_name, 1); // Assuming single input and single output
         
         // 6. Extract output and postprocess
-        float* output = output_tensors[0].GetTensorMutableData<float>();
+        // float* output = output_tensors[0].GetTensorMutableData<float>();
 
         
-        return postprocess(output, width, height);
+        return output_tensors[0].GetTensorMutableData<float>();//output;//postprocess(output, width, height);
     }
 
     else{ // TensorRT
 
-        std::vector<float> input(3 * 640 * 640);
-        preprocess(frame, width, height, input.data());
+        // std::vector<float> input(3 * 640 * 640);
+        // preprocess(frame, width, height, input.data());
 
-        cudaMemcpy(device_input_, input.data(), input_size_, cudaMemcpyHostToDevice);
+        cudaMemcpy(device_input_, input, input_size_, cudaMemcpyHostToDevice);
 
-        context_->setTensorAddress("images", device_input_);
-        context_->setTensorAddress("output", device_output_);
+        // context_->setTensorAddress("images", device_input_);
+        // context_->setTensorAddress("output", device_output_);
         context_->enqueueV3(0);
+        // cudaDeviceSynchronize(); // For synchronization and accurate timing(as using default stream). 
 
         cudaMemcpy(host_output_, device_output_, output_size_, cudaMemcpyDeviceToHost);
 
-        return postprocess(host_output_, width, height);
+        return host_output_;//postprocess(host_output_, width, height);
     }
 }
